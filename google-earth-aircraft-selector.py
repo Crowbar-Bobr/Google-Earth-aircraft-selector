@@ -91,9 +91,11 @@ CONFIG_FILE_PATH = AircraftFolder + sep + "aircraft-mappings.json"
 UnexpectedError = None
 try:
     TestPathFile = f"{AircraftFolder + sep}test.test"
-    TestFile = open(TestPathFile, "wt")
+    TestFile = open(TestPathFile, "xt")
     TestFile.close()
     remove(TestPathFile)
+except FileExistsError:
+    pass
 except PermissionError:
     ErrorExit("No permission to modify this directory\nUse administrative console or root", 4)
 except Exception as Error:
