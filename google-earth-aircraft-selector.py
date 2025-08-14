@@ -2,10 +2,14 @@ from json import dumps as ToJSON, loads as FromJSON
 from json.decoder import JSONDecodeError
 # TODO: Check for bugs
 
+# TODO: Finish info command, add syntax descriptions
+
 from os.path import abspath, exists, isdir, isfile
 from os import sep, remove, listdir, system
 from shutil import copy
 from sys import argv
+
+from tonylib import AskUser
 
 def cls():
     for command in ["cls", "clear"]:
@@ -24,12 +28,20 @@ def ErrorExit(Error: str, ReturnCode: int):
     print(f"ERROR: {Error}")
     exit(ReturnCode)
 
-def AskUser(Prompt: str, ExpectedAnswers: str, DefaultAnswer:str = None):
+def AskUser(Prompt: str, ExpectedAnswers: str, DefaultAnswer: str | None = None):
     ExpectedAnswersList = ExpectedAnswers.replace("", " ").split()
+    
+    if DefaultAnswer != None:
+        for index in range(len(ExpectedAnswersList)):
+            if ExpectedAnswersList[index] == DefaultAnswer:
+                ExpectedAnswersList[index] = ExpectedAnswersList[index].upper()
+            else:
+                ExpectedAnswersList[index] = ExpectedAnswersList[index].lower()
+
     Answer = ""
     try:
         while Answer not in ExpectedAnswersList:
-            Answer = input(f"{Prompt} [{'/'.join(ExpectedAnswersList)}]:>")
+            Answer = input(f"{Prompt} [{'/'.join(ExpectedAnswersList)}]:>").lower()
             if DefaultAnswer != None:
                 Answer = [DefaultAnswer, Answer][Answer in ExpectedAnswersList]
                 break
@@ -46,11 +58,13 @@ def UpdateFileList():
     global AircraftNames
     global BackupFullPaths
     global BackupNames
+    global AircraftNameToPath
 
     AircraftFullPaths = []
     AircraftNames = []
     BackupFullPaths = []
     BackupNames = []
+    AircraftNameToPath = {}
 
     for FileName in listdir(AircraftFolder):
         FullFilePath = AircraftFolder + sep + FileName
@@ -58,6 +72,7 @@ def UpdateFileList():
             if FileName.lower().endswith("." + AIRCRAFTEXTENTSION):
                 AircraftNames += [FileName[:-len(AIRCRAFTEXTENTSION) - 1]]
                 AircraftFullPaths += [FullFilePath]
+                AircraftNameToPath[AircraftNames[-1]] = FullFilePath
             if FileName.lower().endswith(BACKUPEXTENSION):
                 BackupNames += [FileName[:-len(AIRCRAFTEXTENTSION) - len(BACKUPEXTENSION) - 2]]
                 BackupFullPaths += [FullFilePath]
@@ -73,7 +88,7 @@ def GetTypeName(Value):
 GivenArguments = argv[1::]
 
 if not GivenArguments:
-    ErrorExit("Expected to recive path to google earth aircrafts", 1)
+    ErrorExit("Expected to receive path to google earth aircrafts", 1)
 
 AircraftFolder = abspath(GivenArguments[0])
 if not exists(AircraftFolder):
@@ -93,7 +108,7 @@ except PermissionError:
     ErrorExit("No permission to modify this directory\nUse administrative console or root", 4)
 except Exception as Error:
     print(f"Unexpected error during directory check")
-    Answer = AskUser("view full information?", "yn")
+    Answer = AskUser("View full information?", "yn", "n")
     UnexpectedError = Error
 
 if UnexpectedError != None:
@@ -102,10 +117,11 @@ if UnexpectedError != None:
     else:
         exit(5)
 
-AircraftFullPaths:list[str] = []
-AircraftNames:list[str] = []
-BackupFullPaths:list[str] = []
-BackupNames:list[str] = []
+AircraftFullPaths : list[str] = []
+AircraftNames : list[str] = []
+BackupFullPaths : list[str] = []
+BackupNames : list[str] = []
+AircraftNameToPath : dict[str, str] = {}
 UpdateFileList()
 
 AircraftMapping:dict[str, str] = {"backed up":[]}
@@ -191,7 +207,7 @@ else:
         AttemptMappingRestoration("DefaultBackedip", 8)
     
     elif type(AircraftMapping["backed up"]) != list:
-        print(f"expected 'list' for \"backed up\" field, recived {GetTypeName(AircraftMapping['backed up'])}")
+        print(f"expected 'list' for \"backed up\" field, received {GetTypeName(AircraftMapping['backed up'])}")
         AttemptMappingRestoration("DefaultBackedip", 8)
 
     for backup in AircraftMapping["backed up"]:
@@ -221,6 +237,34 @@ def ShowPlanes():
     for aircraft in BackupNames:
         print(f"   {aircraft.upper()} {'(Default)' * (aircraft in DEFAULTAIRCRAFTNAMES) * False}")
 
+def StrToNumber(PotentialNumber: str) -> float | None:
+        try:
+                TestNumber = float(PotentialNumber)
+                return TestNumber
+        except ValueError:
+                return None
+
+# Expects that folder path and aircraft name are already validated
+# Retuns dict of properties in the ACF files mapped to their numeric values
+# None for value means that it is not a valid number
+def InterpretateAircraftAsACF(AircraftName: str) -> dict[str, float | None]:
+    file = open(AircraftNameToPath[AircraftName], "rt")
+    FileLines = file.read().split("\n")
+    file.close()
+
+    FoundProprties = {}
+    for line in FileLines:
+        line = line.replace(" ", "")
+        line = line.split("%", 1)[0] # Remove comments from the line
+
+        if not line or "=" not in line:
+            continue
+
+        NameValueList = line.split("=", 1)
+        FoundProprties[NameValueList[0]] = StrToNumber(NameValueList[1])
+    
+    return FoundProprties
+
 def Help(Command:str = "general"):
     Command = Command.lower()
     if Command == "general":
@@ -234,7 +278,7 @@ def Help(Command:str = "general"):
         print("  select             Load aircraft data to a default plane")
         print("  restore            Load backups of default aircrafts to default aircrafts")
         print("\nTo view full syntax description enter HELP COMMANDNAME or COMMANDNAME /?")
-    elif Command == "help":
+    elif Command in ["help", "/?"]:
         print("Show command list or full command description")
         print("HELP [COMMAND_NAME]")
         print("COMMAND_NAME /?\n")
@@ -306,6 +350,22 @@ while True:
     elif "/?" in ArgumentList:
         Help(CommandName)
 
+    elif CommandName == "info-test":
+        if ArgumentCount != 1:
+            WrongArgumentAmount(1)
+
+        if NoError and ArgumentList[1] not in AircraftNames and ArgumentList[1]:
+            PrintError(f"ERROR: \"{ArgumentList[1]}\" is not a valid aircraft")
+
+        if NoError:
+            Properties = InterpretateAircraftAsACF(ArgumentList[1])
+        
+            print(f"Found properties for \"{ArgumentList[1]}\" aircraft:")
+            for PropertyName in Properties:
+                PropertyValue = Properties[PropertyName]
+                print(f"\t\"{PropertyName}\": {[PropertyValue, 'NaN'][PropertyValue == None]}")
+
+
     elif CommandName in ["exit", "quit", "x", "q"]:
         exit()
     
@@ -333,14 +393,20 @@ while True:
             PrintError(f"ERROR: \"{ArgumentList[2]}\" is not a default aircraft")
 
         if NoError:
-            if ArgumentList[2] in AircraftMapping["backed up"] or AircraftMapping[ArgumentList[2]] != ArgumentList[2]:
+            # Divided these conditions into seperate branches (there're too long)
+            if ArgumentList[2] in AircraftMapping["backed up"]:
                 print(f"Not overwritting stored backup of \"{ArgumentList[2]}\"")
+            elif AircraftMapping[ArgumentList[2]] != ArgumentList[2]:
+                print(f"Not overwritting stored backup of \"{ArgumentList[2]}\"")
+                
             elif ArgumentList[2] in AircraftMapping and AircraftMapping[ArgumentList[2]] == ArgumentList[2]:
                 FullBackupPath = f"{AircraftFolder}{sep}{ArgumentList[2]}.{AIRCRAFTEXTENTSION}.{BACKUPEXTENSION}"
                 copy(f"{AircraftFolder}{sep}{ArgumentList[2]}.{AIRCRAFTEXTENTSION}", FullBackupPath)
                 AircraftMapping[ArgumentList[2]] = ArgumentList[1]
-                AircraftMapping["backed up"] += [ArgumentList[2]]*(ArgumentList[2] not in AircraftMapping["backed up"])
-                print(f"Backed up default aircraft \"{ArgumentList[2]}\"")
+                
+                if ArgumentList[2] not in AircraftMapping["backed up"]:
+                    AircraftMapping["backed up"] += [ArgumentList[2]]
+                    print(f"Backed up default aircraft \"{ArgumentList[2]}\"")
             else:
                 print("WARNING: No safe backup is possible")
                 Answer = AskUser(f"Overwrite data of \"{ArgumentList[2]}\" aircraft?", "yn", DefaultAnswer = "n")
@@ -349,8 +415,12 @@ while True:
                     NoError = False
             
             if NoError:
-                FullDesiredPath = AircraftFolder + sep + ArgumentList[1] + "." + AIRCRAFTEXTENTSION
-                FullDefaultPath = AircraftFolder + sep + ArgumentList[2] + "." + AIRCRAFTEXTENTSION
+                #FullDesiredPath = AircraftFolder + sep + ArgumentList[1] + "." + AIRCRAFTEXTENTSION
+                #FullDefaultPath = AircraftFolder + sep + ArgumentList[2] + "." + AIRCRAFTEXTENTSION
+
+                FullDesiredPath = AircraftNameToPath[ArgumentList[1]]
+                FullDefaultPath = AircraftNameToPath[ArgumentList[2]]
+
                 copy(FullDesiredPath, FullDefaultPath)
                 print(f"Selected \"{ArgumentList[1]}\" for \"{ArgumentList[2]}\"")
 
