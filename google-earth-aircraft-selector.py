@@ -9,8 +9,6 @@ from os import sep, remove, listdir, system
 from shutil import copy
 from sys import argv
 
-from tonylib import AskUser
-
 def cls():
     for command in ["cls", "clear"]:
         ErrorCode = system(command)
