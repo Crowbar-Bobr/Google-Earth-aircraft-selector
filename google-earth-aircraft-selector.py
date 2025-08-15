@@ -9,8 +9,6 @@ from os import sep, remove, listdir, system
 from shutil import copy
 from sys import argv
 
-from tonylib import AskUser
-
 def cls():
     for command in ["cls", "clear"]:
         ErrorCode = system(command)
@@ -286,6 +284,7 @@ def Help(Command:str = "general"):
         print("  exit               Stop script execution")
         print("  quit               Stop script execution")
         print("  list               Show a list of available aircrafts")
+        print("  info               Show aircraft's property values")
         print("  help               Show this list or full commands' descriptions")
         print("  select             Load aircraft data to a default plane")
         print("  restore            Load backups of default aircrafts to default aircrafts")
@@ -307,6 +306,13 @@ def Help(Command:str = "general"):
     elif Command == "list":
         print("Show a list of available aircrafts")
         print("LIST")
+    elif Command == "info":
+        print("Show aircraft's property values")
+        print("INFO [[AIRCRAFT_NAME] [PROPERTY_NAME]] | properties")
+        print("AIRCRAFT_NAME        Specify aircraft to view properties")
+        print("PROPERTY_NAME        Optional. Specify which aircraft's property to view,")
+        print("                     shows basic properties (like thrust) when omitted.")
+        print("properties           View list of valid property names")
     elif Command == "select":
         print("Load aircraft data to a default plane")
         print("SELECT [DESIRED_AIRCRAFT] [as] [DEFAULT_AIRCRAFT]\n")
