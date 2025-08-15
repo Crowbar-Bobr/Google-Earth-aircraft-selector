@@ -284,7 +284,7 @@ def Help(Command:str = "general"):
         print("  exit               Stop script execution")
         print("  quit               Stop script execution")
         print("  list               Show a list of available aircrafts")
-        print("  info               Show aircraft's property values")
+        print("  info               Show aircraft's property names and values")
         print("  help               Show this list or full commands' descriptions")
         print("  select             Load aircraft data to a default plane")
         print("  restore            Load backups of default aircrafts to default aircrafts")
@@ -306,8 +306,21 @@ def Help(Command:str = "general"):
     elif Command == "list":
         print("Show a list of available aircrafts")
         print("LIST")
+    elif CommandName == "lol kek":
+        print("list of valid property names for ACF format:")
+        LineLength = 0
+        MaxLineLength = 50
+        PropertyListString = "\n\t"
+        for property in VALIDACFPROPERTIES:
+            if LineLength + len(property) + 2 > MaxLineLength:
+                PropertyListString = PropertyListString[-2::] + "\n\t"
+                LineLength = 0
+            else:
+                PropertyListString += property + ", "
+        
+        print(PropertyListString[-2::])
     elif Command == "info":
-        print("Show aircraft's property values")
+        print("Show aircraft's property names and values")
         print("INFO [[AIRCRAFT_NAME] [PROPERTY_NAME]] | properties")
         print("AIRCRAFT_NAME        Specify aircraft to view properties")
         print("PROPERTY_NAME        Optional. Specify which aircraft's property to view,")
@@ -369,7 +382,10 @@ while True:
         Help(CommandName)
 
     elif CommandName == "info-test":
-        if ArgumentCount not in [1, 2]:
+        if not ArgumentCount:
+            Help("lol kek")
+            NoError = False # To be removed
+        if ArgumentCount not in [0, 1, 2]:
             WrongArgumentAmount("1 or 2")
 
         if NoError and ArgumentList[1] not in AircraftNames and ArgumentList[1]:
