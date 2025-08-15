@@ -24,6 +24,18 @@ DEFAULTAIRCRAFTNAMES = ["f16", "sr22"]
 ENABLECONSTANTUPDATES = True
 PRINTAIRCRAFTMAPPING = False
 
+VALIDACFPROPERTIES = ['model_name', 'd_E_min', 'V_approach', 'D_F_approach', 'D_P_approach',
+    'V_cruise', 'D_F_cruise', 'D_P_cruise', 'spring_e_T', 'damper_e_T', 'spring_vertical', 'damper_vertical',
+    'spring_horizontal', 'damper_horizontal', 'p_v', 'first_fixed', 'spring_damper', 'contact_patch', 'P_max', 
+    'F_max', 'P_ratio_reverse', 'P_ratio_alpha', 'p_T_v', 'd_T_v', 'p_E_v', 'b', 'c_bar', 'd_ref', 'v_ref', 
+    'F_ref', 'm', 'J', 'p_CM_v', 'p_AC_v', 'alpha_z_0_deg', 'dalpha_z_deg_dDF', 'C_D_0', 'dC_D_dDG', 'dC_D_dDF', 
+    'dC_L_dalpha_deg', 'dC_L_dS', 'C_L_max_0', 'dC_L_max_dDF', 'd2C_D_dC_L2', 'd2C_D_dC_Y2', 'dC_Y_dDR', 
+    'dC_Y_dbeta_deg', 'dC_Y_dp_hat', 'dC_Y_dr_hat', 'C_m_0', 'dC_m_dDE', 'dC_m_dDE_T', 'dC_m_dDF', 'dC_m_dDG', 
+    'dC_m_dS', 'dC_m_dq_hat', 'dC_m_dalpha_deg', 'd2C_m_dbeta2', 'dC_l_dDA', 'dC_l_dDR', 'dC_l_dbeta_deg', 
+    'dC_l_dp_hat_0', 'dC_l_dr_hat_0', 'ddC_l_dp_hat_0_dS', 'ddC_l_dr_hat_0_dS', 'dC_l_dp_hat_max', 'dC_n_dDA', 
+    'dC_n_dDR', 'dC_n_dbeta_deg', 'dC_n_dp_hat', 'dC_n_dr_hat', 'd2C_m_dq_hat2', 'd2C_l_dp_hat2', 'd2C_n_dr_hat2'
+]
+
 def ErrorExit(Error: str, ReturnCode: int):
     print(f"ERROR: {Error}")
     exit(ReturnCode)
@@ -244,10 +256,7 @@ def StrToNumber(PotentialNumber: str) -> float | None:
         except ValueError:
                 return None
 
-# Expects that folder path and aircraft name are already validated
-# Retuns dict of properties in the ACF files mapped to their numeric values
-# None for value means that it is not a valid number
-def InterpretateAircraftAsACF(AircraftName: str) -> dict[str, float | None]:
+def InterpretateAircraftAsACF(AircraftName: str) -> dict[str, str]:
     file = open(AircraftNameToPath[AircraftName], "rt")
     FileLines = file.read().split("\n")
     file.close()
@@ -261,7 +270,10 @@ def InterpretateAircraftAsACF(AircraftName: str) -> dict[str, float | None]:
             continue
 
         NameValueList = line.split("=", 1)
-        FoundProprties[NameValueList[0]] = StrToNumber(NameValueList[1])
+        if NameValueList[0] not in VALIDACFPROPERTIES:
+            continue
+
+        FoundProprties[NameValueList[0]] = NameValueList[1]
     
     return FoundProprties
 
@@ -351,8 +363,8 @@ while True:
         Help(CommandName)
 
     elif CommandName == "info-test":
-        if ArgumentCount != 1:
-            WrongArgumentAmount(1)
+        if ArgumentCount not in [1, 2]:
+            WrongArgumentAmount("1 or 2")
 
         if NoError and ArgumentList[1] not in AircraftNames and ArgumentList[1]:
             PrintError(f"ERROR: \"{ArgumentList[1]}\" is not a valid aircraft")
@@ -363,7 +375,7 @@ while True:
             print(f"Found properties for \"{ArgumentList[1]}\" aircraft:")
             for PropertyName in Properties:
                 PropertyValue = Properties[PropertyName]
-                print(f"\t\"{PropertyName}\": {[PropertyValue, 'NaN'][PropertyValue == None]}")
+                print(f"\t\"{PropertyName}\": {PropertyValue}")
 
 
     elif CommandName in ["exit", "quit", "x", "q"]:
