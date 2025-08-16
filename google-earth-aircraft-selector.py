@@ -313,7 +313,7 @@ def Help(Command:str = "general"):
         print("Show aircraft's property names and values")
         print("INFO [[AIRCRAFT_NAME] [PROPERTY_NAME]] | properties")
         print("AIRCRAFT_NAME        Specify aircraft to view properties")
-        print("PROPERTY_NAME        Optional. Specify which aircraft's property to view,")
+        print("PROPERTY_NAME        Specify which aircraft's property (properties) to view,")
         print("                     shows basic properties (like thrust) when omitted.")
         print("properties           View list of valid property names")
     elif Command == "info properties":
@@ -386,35 +386,7 @@ while True:
     elif "/?" in ArgumentList:
         Help(CommandName)
 
-    elif CommandName == "info":
-        if ArgumentCount not in [1, 2]:
-            WrongArgumentAmount("1 or 2")
-
-        if ArgumentCount == 2:
-            RequestedProperty = ArgumentList[2]
-            if RequestedProperty not in VALIDACFPROPERTIES:
-                PrintError(f"ERROR: Requested invalid property \"{RequestedProperty}\"")
-        else:
-            RequestedProperty = None
-
-        if NoError and ArgumentList[1] == "properties":
-            Help("info properties")
-        elif NoError and ArgumentList[1] not in AircraftNames and ArgumentList[1]:
-            PrintError(f"ERROR: \"{ArgumentList[1]}\" is not a valid aircraft or keyword")
-        elif NoError:
-            Properties = InterpretateAircraftAsACF(ArgumentList[1])
-
-            print(f"{['Requested property', 'Basic properties'][RequestedProperty == None]} ", end = "")
-            print(f"for \"{ArgumentList[1]}\" aircraft:")
-            for (PropertyName, PropertyValue) in list(Properties.items()):
-                if RequestedProperty != None and PropertyName.lower() != RequestedProperty:
-                    pass
-                if RequestedProperty == None and PropertyName.lower() not in BASICACFPROPERTIES:
-                    continue
-                
-                print(f"{PropertyName} = {PropertyValue}")
-
-    elif CommandName in ["exit", "quit", "x", "q"]:
+    elif CommandName in ["exit", "quit"]:
         exit()
     
     elif CommandName in ["cls", "clear"]:
@@ -423,6 +395,37 @@ while True:
     elif CommandName == "list":
         UpdateFileList()
         ShowPlanes()
+
+    elif CommandName == "info":
+        if not ArgumentCount:
+            WrongArgumentAmount("1 or more")
+
+        RequestedProperties = ArgumentList[2::]
+        if RequestedProperties:
+            for property in RequestedProperties:
+                if property not in VALIDACFPROPERTIES:
+                    PrintError(f"ERROR: Requested invalid property \"{property}\"")
+
+        if NoError and ArgumentList[1] == "properties":
+            Help("info properties")
+        elif NoError and ArgumentList[1] not in AircraftNames:
+            PrintError(f"ERROR: \"{ArgumentList[1]}\" is not a valid aircraft or keyword")
+        elif NoError:
+            Properties = InterpretateAircraftAsACF(ArgumentList[1])
+            
+            if RequestedProperties:
+                print(f"Requested propert{['y', 'ies'][ArgumentCount != 2]}", end = " ")
+            else:
+                print("Basic properties", end = " ")
+
+            print(f"for \"{ArgumentList[1]}\" aircraft:")
+            for PropertyName in Properties:
+                if RequestedProperties and PropertyName.lower() not in RequestedProperties:
+                    continue
+                if not RequestedProperties and PropertyName.lower() not in BASICACFPROPERTIES:
+                    continue
+                
+                print(f"{PropertyName} = {Properties[PropertyName]}")
 
     elif CommandName == "select":
         if ArgumentCount not in [2, 3]:
