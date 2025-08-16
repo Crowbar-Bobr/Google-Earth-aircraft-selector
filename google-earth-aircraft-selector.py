@@ -101,7 +101,7 @@ def GetTypeName(Value):
 GivenArguments = argv[1::]
 
 if not GivenArguments:
-    ErrorExit("Expected to receive path to google earth aircrafts", 1)
+    ErrorExit("Expected to receive directory path to google earth's aircraft", 1)
 
 AircraftFolder = abspath(GivenArguments[0])
 if not exists(AircraftFolder):
@@ -286,11 +286,11 @@ def Help(Command:str = "general"):
         print("  cls                Clear the screen")
         print("  exit               Stop script execution")
         print("  quit               Stop script execution")
-        print("  list               Show a list of available aircrafts")
+        print("  list               Show a list of available aircraft")
         print("  info               Show aircraft's property names and values")
         print("  help               Show this list or full commands' descriptions")
         print("  select             Load aircraft data to a default plane")
-        print("  restore            Load backups of default aircrafts to default aircrafts")
+        print("  restore            Load backups of default aircraft to default aircraft")
         print("\nTo view full syntax description enter HELP COMMANDNAME or COMMANDNAME /?")
     elif Command in ["help", "/?"]:
         print("Show command list or full command description")
@@ -307,7 +307,7 @@ def Help(Command:str = "general"):
         print("EXIT")
         print("QUIT")
     elif Command == "list":
-        print("Show a list of available aircrafts")
+        print("Show a list of available aircraft")
         print("LIST")
     elif Command == "info":
         print("Show aircraft's property names and values")
@@ -338,10 +338,10 @@ def Help(Command:str = "general"):
         print("DEFAULT_AIRCRAFT     Specify where aircraft data will be pasted to")
         print("\nNOTE: you can skip \"as\" keyword")
     elif Command == "restore": 
-        print("Load backups of default aircrafts to default aircrafts")
+        print("Load backups of default aircraft to default aircraft")
         print("RESTORE [AIRCRAFTNAME | all]\n")
         print("AIRCRAFTNAME         Name of any default aircraft to restore")
-        print("all                  Specify to restore all backed up aircrafts")
+        print("all                  Specify to restore all backed up aircraft")
     else:
         print(f"No information about \"{Command}\"")
 
@@ -431,7 +431,7 @@ while True:
         if NoError and ArgumentList[1] not in AircraftNames:
             PrintError(f"ERROR: \"{ArgumentList[1]}\" is not a valid aircraft")
         if NoError and ArgumentList[1] in DEFAULTAIRCRAFTNAMES and NoError:
-            PrintError("ERROR: Default aircrafts can't be selected, use restore command instead")
+            PrintError("ERROR: Default aircraft can't be selected, use restore command instead")
         if NoError and ArgumentList[2] == "as" and ArgumentCount >= 3 and NoError:
             ArgumentList.pop(2)
             ArgumentCount -= 1
