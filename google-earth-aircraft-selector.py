@@ -86,7 +86,7 @@ CONFIGFILE = AircraftFolder + sep + "aircraft-mappings.json"
 UnexpectedError = None
 try:
     TestPathFile = f"{AircraftFolder + sep}test.test"
-    TestFile = open(TestPathFile, "wt")
+    TestFile = open(TestPathFile, "at")
     TestFile.close()
     remove(TestPathFile)
 except PermissionError:
