@@ -1,7 +1,6 @@
 ...
 
 ## TODO:
-- [x] Make ACF file interpreter
-- [x] Impement interface for info command
-- [x] Figure out and fix "aircraft"(s) grammar
+- [ ] Check/Test info command
+- [ ] Remove useless comments
 - [ ] Write setup instructions in README file
