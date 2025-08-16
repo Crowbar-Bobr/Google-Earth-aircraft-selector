@@ -386,7 +386,7 @@ while True:
     elif "/?" in ArgumentList:
         Help(CommandName)
 
-    elif CommandName == "info-test":
+    elif CommandName == "info":
         if ArgumentCount not in [1, 2]:
             WrongArgumentAmount("1 or 2")
 
