@@ -4,8 +4,8 @@ from json.decoder import JSONDecodeError
 
 # TODO: Finish info command, add syntax descriptions
 
+from os import sep, remove, listdir, system, get_terminal_size
 from os.path import abspath, exists, isdir, isfile
-from os import sep, remove, listdir, system
 from shutil import copy
 from sys import argv
 
@@ -22,17 +22,20 @@ DEFAULTAIRCRAFTNAMES = ["f16", "sr22"]
 ENABLECONSTANTUPDATES = True
 PRINTAIRCRAFTMAPPING = False
 
-VALIDACFPROPERTIES = ['model_name', 'd_E_min', 'V_approach', 'D_F_approach', 'D_P_approach',
-    'V_cruise', 'D_F_cruise', 'D_P_cruise', 'spring_e_T', 'damper_e_T', 'spring_vertical', 'damper_vertical',
-    'spring_horizontal', 'damper_horizontal', 'p_v', 'first_fixed', 'spring_damper', 'contact_patch', 'P_max', 
-    'F_max', 'P_ratio_reverse', 'P_ratio_alpha', 'p_T_v', 'd_T_v', 'p_E_v', 'b', 'c_bar', 'd_ref', 'v_ref', 
-    'F_ref', 'm', 'J', 'p_CM_v', 'p_AC_v', 'alpha_z_0_deg', 'dalpha_z_deg_dDF', 'C_D_0', 'dC_D_dDG', 'dC_D_dDF', 
-    'dC_L_dalpha_deg', 'dC_L_dS', 'C_L_max_0', 'dC_L_max_dDF', 'd2C_D_dC_L2', 'd2C_D_dC_Y2', 'dC_Y_dDR', 
-    'dC_Y_dbeta_deg', 'dC_Y_dp_hat', 'dC_Y_dr_hat', 'C_m_0', 'dC_m_dDE', 'dC_m_dDE_T', 'dC_m_dDF', 'dC_m_dDG', 
-    'dC_m_dS', 'dC_m_dq_hat', 'dC_m_dalpha_deg', 'd2C_m_dbeta2', 'dC_l_dDA', 'dC_l_dDR', 'dC_l_dbeta_deg', 
-    'dC_l_dp_hat_0', 'dC_l_dr_hat_0', 'ddC_l_dp_hat_0_dS', 'ddC_l_dr_hat_0_dS', 'dC_l_dp_hat_max', 'dC_n_dDA', 
-    'dC_n_dDR', 'dC_n_dbeta_deg', 'dC_n_dp_hat', 'dC_n_dr_hat', 'd2C_m_dq_hat2', 'd2C_l_dp_hat2', 'd2C_n_dr_hat2'
+VALIDACFPROPERTIES = [
+    'model_name', 'd_e_min', 'v_approach', 'd_f_approach', 'd_p_approach', 'v_cruise', 'd_f_cruise', 'd_p_cruise',
+    'spring_e_t', 'damper_e_t', 'spring_vertical', 'damper_vertical', 'spring_horizontal', 'damper_horizontal',
+    'p_v', 'first_fixed', 'spring_damper', 'contact_patch', 'p_max', 'f_max', 'p_ratio_reverse', 'p_ratio_alpha',
+    'p_t_v', 'd_t_v', 'p_e_v', 'b', 'c_bar', 'd_ref', 'v_ref', 'f_ref', 'm', 'j', 'p_cm_v', 'p_ac_v',
+    'alpha_z_0_deg', 'dalpha_z_deg_ddf', 'c_d_0', 'dc_d_ddg', 'dc_d_ddf', 'dc_l_dalpha_deg', 'dc_l_ds',
+    'c_l_max_0', 'dc_l_max_ddf', 'd2c_d_dc_l2', 'd2c_d_dc_y2', 'dc_y_ddr', 'dc_y_dbeta_deg', 'dc_y_dp_hat',
+    'c_m_0', 'dc_m_dde', 'dc_m_dde_t', 'dc_m_ddf', 'dc_m_ddg', 'dc_m_ds', 'dc_m_dq_hat', 'dc_m_dalpha_deg', 
+    'd2c_m_dbeta2', 'dc_l_dda', 'dc_l_ddr', 'dc_l_dbeta_deg', 'dc_l_dp_hat_0', 'dc_l_dr_hat_0',
+    'ddc_l_dr_hat_0_ds', 'dc_l_dp_hat_max', 'dc_n_dda', 'dc_n_ddr', 'dc_n_dbeta_deg', 'dc_n_dp_hat', 
+    'dc_n_dr_hat', 'd2c_m_dq_hat2', 'd2c_l_dp_hat2', 'd2c_n_dr_hat2', 'dc_y_dr_hat', 'ddc_l_dp_hat_0_ds'
 ]
+
+BASICACFPROPERTIES = ["v_approach", "v_cruise", "p_max", "f_max", "p_ratio_reverse"]
 
 def ErrorExit(Error: str, ReturnCode: int):
     print(f"ERROR: {Error}")
@@ -268,7 +271,7 @@ def InterpretateAircraftAsACF(AircraftName: str) -> dict[str, str]:
             continue
 
         NameValueList = line.split("=", 1)
-        if NameValueList[0] not in VALIDACFPROPERTIES:
+        if NameValueList[0].lower() not in VALIDACFPROPERTIES:
             continue
 
         FoundProprties[NameValueList[0]] = NameValueList[1]
@@ -306,19 +309,6 @@ def Help(Command:str = "general"):
     elif Command == "list":
         print("Show a list of available aircrafts")
         print("LIST")
-    elif CommandName == "lol kek":
-        print("list of valid property names for ACF format:")
-        LineLength = 0
-        MaxLineLength = 50
-        PropertyListString = "\n\t"
-        for property in VALIDACFPROPERTIES:
-            if LineLength + len(property) + 2 > MaxLineLength:
-                PropertyListString = PropertyListString[-2::] + "\n\t"
-                LineLength = 0
-            else:
-                PropertyListString += property + ", "
-        
-        print(PropertyListString[-2::])
     elif Command == "info":
         print("Show aircraft's property names and values")
         print("INFO [[AIRCRAFT_NAME] [PROPERTY_NAME]] | properties")
@@ -326,6 +316,21 @@ def Help(Command:str = "general"):
         print("PROPERTY_NAME        Optional. Specify which aircraft's property to view,")
         print("                     shows basic properties (like thrust) when omitted.")
         print("properties           View list of valid property names")
+    elif Command == "info properties":
+        print("list of valid property names for ACF format:")
+        LineLength = 0
+        MaxLineLength = get_terminal_size()[0] -1
+        PropertyListString = "  "
+        for property in VALIDACFPROPERTIES:
+            ProprertyLength = len(property) + 2
+            if LineLength + ProprertyLength > MaxLineLength:
+                PropertyListString = PropertyListString[:-2:] + "\n  "
+                LineLength = 0
+            else:
+                PropertyListString += property + ", "
+                LineLength += ProprertyLength
+        
+        print(PropertyListString[:-2:])
     elif Command == "select":
         print("Load aircraft data to a default plane")
         print("SELECT [DESIRED_AIRCRAFT] [as] [DEFAULT_AIRCRAFT]\n")
@@ -382,23 +387,32 @@ while True:
         Help(CommandName)
 
     elif CommandName == "info-test":
-        if not ArgumentCount:
-            Help("lol kek")
-            NoError = False # To be removed
-        if ArgumentCount not in [0, 1, 2]:
+        if ArgumentCount not in [1, 2]:
             WrongArgumentAmount("1 or 2")
 
-        if NoError and ArgumentList[1] not in AircraftNames and ArgumentList[1]:
-            PrintError(f"ERROR: \"{ArgumentList[1]}\" is not a valid aircraft")
+        if ArgumentCount == 2:
+            RequestedProperty = ArgumentList[2]
+            if RequestedProperty not in VALIDACFPROPERTIES:
+                PrintError(f"ERROR: Requested invalid property \"{RequestedProperty}\"")
+        else:
+            RequestedProperty = None
 
-        if NoError:
+        if NoError and ArgumentList[1] == "properties":
+            Help("info properties")
+        elif NoError and ArgumentList[1] not in AircraftNames and ArgumentList[1]:
+            PrintError(f"ERROR: \"{ArgumentList[1]}\" is not a valid aircraft or keyword")
+        elif NoError:
             Properties = InterpretateAircraftAsACF(ArgumentList[1])
-        
-            print(f"Found properties for \"{ArgumentList[1]}\" aircraft:")
-            for PropertyName in Properties:
-                PropertyValue = Properties[PropertyName]
-                print(f"\t\"{PropertyName}\": {PropertyValue}")
 
+            print(f"{['Requested property', 'Basic properties'][RequestedProperty == None]} ", end = "")
+            print(f"for \"{ArgumentList[1]}\" aircraft:")
+            for (PropertyName, PropertyValue) in list(Properties.items()):
+                if RequestedProperty != None and PropertyName.lower() != RequestedProperty:
+                    pass
+                if RequestedProperty == None and PropertyName.lower() not in BASICACFPROPERTIES:
+                    continue
+                
+                print(f"{PropertyName} = {PropertyValue}")
 
     elif CommandName in ["exit", "quit", "x", "q"]:
         exit()
@@ -427,7 +441,7 @@ while True:
             PrintError(f"ERROR: \"{ArgumentList[2]}\" is not a default aircraft")
 
         if NoError:
-            # Divided these conditions into seperate branches (there're too long)
+            # Divided these conditions into seperate branches (they're too long)
             if ArgumentList[2] in AircraftMapping["backed up"]:
                 print(f"Not overwritting stored backup of \"{ArgumentList[2]}\"")
             elif AircraftMapping[ArgumentList[2]] != ArgumentList[2]:
