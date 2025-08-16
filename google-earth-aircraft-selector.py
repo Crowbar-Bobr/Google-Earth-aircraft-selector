@@ -1,9 +1,8 @@
 from json import dumps as ToJSON, loads as FromJSON
 from json.decoder import JSONDecodeError
-# TODO: Check for bugs
 
+from os import sep, remove, listdir, system, get_terminal_size
 from os.path import abspath, exists, isdir, isfile
-from os import sep, remove, listdir, system
 from shutil import copy
 from sys import argv
 
@@ -19,6 +18,21 @@ DEFAULTAIRCRAFTNAMES = ["f16", "sr22"]
 
 ENABLECONSTANTUPDATES = True
 PRINTAIRCRAFTMAPPING = False
+
+VALIDACFPROPERTIES = [
+    'model_name', 'd_e_min', 'v_approach', 'd_f_approach', 'd_p_approach', 'v_cruise', 'd_f_cruise', 'd_p_cruise',
+    'spring_e_t', 'damper_e_t', 'spring_vertical', 'damper_vertical', 'spring_horizontal', 'damper_horizontal',
+    'p_v', 'first_fixed', 'spring_damper', 'contact_patch', 'p_max', 'f_max', 'p_ratio_reverse', 'p_ratio_alpha',
+    'p_t_v', 'd_t_v', 'p_e_v', 'b', 'c_bar', 'd_ref', 'v_ref', 'f_ref', 'm', 'j', 'p_cm_v', 'p_ac_v',
+    'alpha_z_0_deg', 'dalpha_z_deg_ddf', 'c_d_0', 'dc_d_ddg', 'dc_d_ddf', 'dc_l_dalpha_deg', 'dc_l_ds',
+    'c_l_max_0', 'dc_l_max_ddf', 'd2c_d_dc_l2', 'd2c_d_dc_y2', 'dc_y_ddr', 'dc_y_dbeta_deg', 'dc_y_dp_hat',
+    'c_m_0', 'dc_m_dde', 'dc_m_dde_t', 'dc_m_ddf', 'dc_m_ddg', 'dc_m_ds', 'dc_m_dq_hat', 'dc_m_dalpha_deg', 
+    'd2c_m_dbeta2', 'dc_l_dda', 'dc_l_ddr', 'dc_l_dbeta_deg', 'dc_l_dp_hat_0', 'dc_l_dr_hat_0',
+    'ddc_l_dr_hat_0_ds', 'dc_l_dp_hat_max', 'dc_n_dda', 'dc_n_ddr', 'dc_n_dbeta_deg', 'dc_n_dp_hat', 
+    'dc_n_dr_hat', 'd2c_m_dq_hat2', 'd2c_l_dp_hat2', 'd2c_n_dr_hat2', 'dc_y_dr_hat', 'ddc_l_dp_hat_0_ds'
+]
+
+BASICACFPROPERTIES = ["v_approach", "v_cruise", "p_max", "f_max", "p_ratio_reverse"]
 
 def ErrorExit(Error: str, ReturnCode: int):
     print(f"ERROR: {Error}")
@@ -73,7 +87,7 @@ def GetTypeName(Value):
 GivenArguments = argv[1::]
 
 if not GivenArguments:
-    ErrorExit("Expected to recive path to google earth aircrafts", 1)
+    ErrorExit("Expected to receive directory path to google earth's aircraft", 1)
 
 AircraftFolder = abspath(GivenArguments[0])
 if not exists(AircraftFolder):
@@ -203,10 +217,6 @@ else:
             print(f"ERROR: Backup of \"{backup}\" is not found")
             AttemptMappingRestoration("DefaultBackedip", 8)
             break
-
-#print("JSON\n" + ToJSON(MappingJSON, indent = 2))
-#print("\nPYTHON\n" + str(MappingJSON))
-#exit()
     
 def ShowPlanes():
     print("Available planes:")
@@ -221,6 +231,27 @@ def ShowPlanes():
     for aircraft in BackupNames:
         print(f"   {aircraft.upper()} {'(Default)' * (aircraft in DEFAULTAIRCRAFTNAMES) * False}")
 
+def InterpretateAircraftAsACF(AircraftName: str) -> dict[str, str]:
+    file = open(AircraftNameToPath[AircraftName], "rt")
+    FileLines = file.read().split("\n")
+    file.close()
+
+    FoundProprties = {}
+    for line in FileLines:
+        line = line.replace(" ", "")
+        line = line.split("%", 1)[0] # Remove comments from the line
+
+        if not line or "=" not in line:
+            continue
+
+        NameValueList = line.split("=", 1)
+        if NameValueList[0].lower() not in VALIDACFPROPERTIES:
+            continue
+
+        FoundProprties[NameValueList[0]] = NameValueList[1]
+    
+    return FoundProprties
+
 def Help(Command:str = "general"):
     Command = Command.lower()
     if Command == "general":
@@ -229,10 +260,11 @@ def Help(Command:str = "general"):
         print("  cls                Clear the screen")
         print("  exit               Stop script execution")
         print("  quit               Stop script execution")
-        print("  list               Show a list of available aircrafts")
+        print("  list               Show a list of available aircraft")
+        print("  info               Show aircraft's property names and values")
         print("  help               Show this list or full commands' descriptions")
         print("  select             Load aircraft data to a default plane")
-        print("  restore            Load backups of default aircrafts to default aircrafts")
+        print("  restore            Load backups of default aircraft to default aircraft")
         print("\nTo view full syntax description enter HELP COMMANDNAME or COMMANDNAME /?")
     elif Command == "help":
         print("Show command list or full command description")
@@ -249,8 +281,30 @@ def Help(Command:str = "general"):
         print("EXIT")
         print("QUIT")
     elif Command == "list":
-        print("Show a list of available aircrafts")
+        print("Show a list of available aircraft")
         print("LIST")
+    elif Command == "info":
+        print("Show aircraft's property names and values")
+        print("INFO [[AIRCRAFT_NAME] [PROPERTY_NAME]] | properties")
+        print("AIRCRAFT_NAME        Specify aircraft to view properties")
+        print("PROPERTY_NAME        Specify which aircraft's property (properties) to view,")
+        print("                     shows basic properties (like thrust) when omitted.")
+        print("properties           View list of valid property names")
+    elif Command == "info properties":
+        print("list of valid property names for ACF format:")
+        LineLength = 0
+        MaxLineLength = get_terminal_size()[0] -1
+        PropertyListString = "  "
+        for property in VALIDACFPROPERTIES:
+            ProprertyLength = len(property) + 2
+            if LineLength + ProprertyLength > MaxLineLength:
+                PropertyListString = PropertyListString[:-2:] + "\n  "
+                LineLength = 0
+            else:
+                PropertyListString += property + ", "
+                LineLength += ProprertyLength
+        
+        print(PropertyListString[:-2:])
     elif Command == "select":
         print("Load aircraft data to a default plane")
         print("SELECT [DESIRED_AIRCRAFT] [as] [DEFAULT_AIRCRAFT]\n")
@@ -258,10 +312,10 @@ def Help(Command:str = "general"):
         print("DEFAULT_AIRCRAFT     Specify where aircraft data will be pasted to")
         print("\nNOTE: you can skip \"as\" keyword")
     elif Command == "restore": 
-        print("Load backups of default aircrafts to default aircrafts")
+        print("Load backups of default aircraft to default aircraft")
         print("RESTORE [AIRCRAFTNAME | all]\n")
         print("AIRCRAFTNAME         Name of any default aircraft to restore")
-        print("all                  Specify to restore all backed up aircrafts")
+        print("all                  Specify to restore all backed up aircraft")
     else:
         print(f"No information about \"{Command}\"")
 
@@ -306,7 +360,7 @@ while True:
     elif "/?" in ArgumentList:
         Help(CommandName)
 
-    elif CommandName in ["exit", "quit", "x", "q"]:
+    elif CommandName in ["exit", "quit"]:
         exit()
     
     elif CommandName in ["cls", "clear"]:
@@ -316,6 +370,37 @@ while True:
         UpdateFileList()
         ShowPlanes()
 
+    elif CommandName == "info":
+        if not ArgumentCount:
+            WrongArgumentAmount("1 or more")
+
+        RequestedProperties = ArgumentList[2::]
+        if RequestedProperties:
+            for property in RequestedProperties:
+                if property not in VALIDACFPROPERTIES:
+                    PrintError(f"ERROR: Requested invalid property \"{property}\"")
+
+        if NoError and ArgumentList[1] == "properties":
+            Help("info properties")
+        elif NoError and ArgumentList[1] not in AircraftNames:
+            PrintError(f"ERROR: \"{ArgumentList[1]}\" is not a valid aircraft or keyword")
+        elif NoError:
+            Properties = InterpretateAircraftAsACF(ArgumentList[1])
+            
+            if RequestedProperties:
+                print(f"Requested propert{['y', 'ies'][ArgumentCount != 2]}", end = " ")
+            else:
+                print("Basic properties", end = " ")
+
+            print(f"for \"{ArgumentList[1]}\" aircraft:")
+            for PropertyName in Properties:
+                if RequestedProperties and PropertyName.lower() not in RequestedProperties:
+                    continue
+                if not RequestedProperties and PropertyName.lower() not in BASICACFPROPERTIES:
+                    continue
+                
+                print(f"{PropertyName} = {Properties[PropertyName]}")
+
     elif CommandName == "select":
         if ArgumentCount not in [2, 3]:
             WrongArgumentAmount("2 or 3")
@@ -323,7 +408,7 @@ while True:
         if NoError and ArgumentList[1] not in AircraftNames:
             PrintError(f"ERROR: \"{ArgumentList[1]}\" is not a valid aircraft")
         if NoError and ArgumentList[1] in DEFAULTAIRCRAFTNAMES and NoError:
-            PrintError("ERROR: Default aircrafts can't be selected, use restore command instead")
+            PrintError("ERROR: Default aircraft can't be selected, use restore command instead")
         if NoError and ArgumentList[2] == "as" and ArgumentCount >= 3 and NoError:
             ArgumentList.pop(2)
             ArgumentCount -= 1
@@ -333,7 +418,11 @@ while True:
             PrintError(f"ERROR: \"{ArgumentList[2]}\" is not a default aircraft")
 
         if NoError:
-            if ArgumentList[2] in AircraftMapping["backed up"] or AircraftMapping[ArgumentList[2]] != ArgumentList[2]:
+            # Divided these conditions into seperate branches (they're too long)
+            if ArgumentList[2] in AircraftMapping["backed up"]:
+                print(f"Not overwritting stored backup of \"{ArgumentList[2]}\"")
+            elif AircraftMapping[ArgumentList[2]] != ArgumentList[2]:
+
                 print(f"Not overwritting stored backup of \"{ArgumentList[2]}\"")
             elif ArgumentList[2] in AircraftMapping and AircraftMapping[ArgumentList[2]] == ArgumentList[2]:
                 FullBackupPath = f"{AircraftFolder}{sep}{ArgumentList[2]}.{AIRCRAFTEXTENTSION}.{BACKUPEXTENSION}"
@@ -349,8 +438,9 @@ while True:
                     NoError = False
             
             if NoError:
-                FullDesiredPath = AircraftFolder + sep + ArgumentList[1] + "." + AIRCRAFTEXTENTSION
-                FullDefaultPath = AircraftFolder + sep + ArgumentList[2] + "." + AIRCRAFTEXTENTSION
+                FullDesiredPath = AircraftNameToPath[ArgumentList[1]]
+                FullDefaultPath = AircraftNameToPath[ArgumentList[2]]
+
                 copy(FullDesiredPath, FullDefaultPath)
                 print(f"Selected \"{ArgumentList[1]}\" for \"{ArgumentList[2]}\"")
 
