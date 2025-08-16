@@ -38,20 +38,12 @@ def ErrorExit(Error: str, ReturnCode: int):
     print(f"ERROR: {Error}")
     exit(ReturnCode)
 
-def AskUser(Prompt: str, ExpectedAnswers: str, DefaultAnswer: str | None = None):
+def AskUser(Prompt: str, ExpectedAnswers: str, DefaultAnswer:str = None):
     ExpectedAnswersList = ExpectedAnswers.replace("", " ").split()
-    
-    if DefaultAnswer != None:
-        for index in range(len(ExpectedAnswersList)):
-            if ExpectedAnswersList[index] == DefaultAnswer:
-                ExpectedAnswersList[index] = ExpectedAnswersList[index].upper()
-            else:
-                ExpectedAnswersList[index] = ExpectedAnswersList[index].lower()
-
     Answer = ""
     try:
         while Answer not in ExpectedAnswersList:
-            Answer = input(f"{Prompt} [{'/'.join(ExpectedAnswersList)}]:>").lower()
+            Answer = input(f"{Prompt} [{'/'.join(ExpectedAnswersList)}]:>")
             if DefaultAnswer != None:
                 Answer = [DefaultAnswer, Answer][Answer in ExpectedAnswersList]
                 break
@@ -68,13 +60,11 @@ def UpdateFileList():
     global AircraftNames
     global BackupFullPaths
     global BackupNames
-    global AircraftNameToPath
 
     AircraftFullPaths = []
     AircraftNames = []
     BackupFullPaths = []
     BackupNames = []
-    AircraftNameToPath = {}
 
     for FileName in listdir(AircraftFolder):
         FullFilePath = AircraftFolder + sep + FileName
@@ -82,7 +72,6 @@ def UpdateFileList():
             if FileName.lower().endswith("." + AIRCRAFTEXTENTSION):
                 AircraftNames += [FileName[:-len(AIRCRAFTEXTENTSION) - 1]]
                 AircraftFullPaths += [FullFilePath]
-                AircraftNameToPath[AircraftNames[-1]] = FullFilePath
             if FileName.lower().endswith(BACKUPEXTENSION):
                 BackupNames += [FileName[:-len(AIRCRAFTEXTENTSION) - len(BACKUPEXTENSION) - 2]]
                 BackupFullPaths += [FullFilePath]
@@ -111,14 +100,14 @@ CONFIGFILE = AircraftFolder + sep + "aircraft-mappings.json"
 UnexpectedError = None
 try:
     TestPathFile = f"{AircraftFolder + sep}test.test"
-    TestFile = open(TestPathFile, "wt")
+    TestFile = open(TestPathFile, "at")
     TestFile.close()
     remove(TestPathFile)
 except PermissionError:
     ErrorExit("No permission to modify this directory\nUse administrative console or root", 4)
 except Exception as Error:
     print(f"Unexpected error during directory check")
-    Answer = AskUser("View full information?", "yn", "n")
+    Answer = AskUser("view full information?", "yn")
     UnexpectedError = Error
 
 if UnexpectedError != None:
@@ -127,11 +116,10 @@ if UnexpectedError != None:
     else:
         exit(5)
 
-AircraftFullPaths : list[str] = []
-AircraftNames : list[str] = []
-BackupFullPaths : list[str] = []
-BackupNames : list[str] = []
-AircraftNameToPath : dict[str, str] = {}
+AircraftFullPaths:list[str] = []
+AircraftNames:list[str] = []
+BackupFullPaths:list[str] = []
+BackupNames:list[str] = []
 UpdateFileList()
 
 AircraftMapping:dict[str, str] = {"backed up":[]}
@@ -217,7 +205,7 @@ else:
         AttemptMappingRestoration("DefaultBackedip", 8)
     
     elif type(AircraftMapping["backed up"]) != list:
-        print(f"expected 'list' for \"backed up\" field, received {GetTypeName(AircraftMapping['backed up'])}")
+        print(f"expected 'list' for \"backed up\" field, recived {GetTypeName(AircraftMapping['backed up'])}")
         AttemptMappingRestoration("DefaultBackedip", 8)
 
     for backup in AircraftMapping["backed up"]:
@@ -278,7 +266,7 @@ def Help(Command:str = "general"):
         print("  select             Load aircraft data to a default plane")
         print("  restore            Load backups of default aircraft to default aircraft")
         print("\nTo view full syntax description enter HELP COMMANDNAME or COMMANDNAME /?")
-    elif Command in ["help", "/?"]:
+    elif Command == "help":
         print("Show command list or full command description")
         print("HELP [COMMAND_NAME]")
         print("COMMAND_NAME /?\n")
@@ -434,16 +422,14 @@ while True:
             if ArgumentList[2] in AircraftMapping["backed up"]:
                 print(f"Not overwritting stored backup of \"{ArgumentList[2]}\"")
             elif AircraftMapping[ArgumentList[2]] != ArgumentList[2]:
+
                 print(f"Not overwritting stored backup of \"{ArgumentList[2]}\"")
-                
             elif ArgumentList[2] in AircraftMapping and AircraftMapping[ArgumentList[2]] == ArgumentList[2]:
                 FullBackupPath = f"{AircraftFolder}{sep}{ArgumentList[2]}.{AIRCRAFTEXTENTSION}.{BACKUPEXTENSION}"
                 copy(f"{AircraftFolder}{sep}{ArgumentList[2]}.{AIRCRAFTEXTENTSION}", FullBackupPath)
                 AircraftMapping[ArgumentList[2]] = ArgumentList[1]
-                
-                if ArgumentList[2] not in AircraftMapping["backed up"]:
-                    AircraftMapping["backed up"] += [ArgumentList[2]]
-                    print(f"Backed up default aircraft \"{ArgumentList[2]}\"")
+                AircraftMapping["backed up"] += [ArgumentList[2]]*(ArgumentList[2] not in AircraftMapping["backed up"])
+                print(f"Backed up default aircraft \"{ArgumentList[2]}\"")
             else:
                 print("WARNING: No safe backup is possible")
                 Answer = AskUser(f"Overwrite data of \"{ArgumentList[2]}\" aircraft?", "yn", DefaultAnswer = "n")
