@@ -60,11 +60,13 @@ def UpdateFileList():
     global AircraftNames
     global BackupFullPaths
     global BackupNames
+    global AircraftNameToPath
 
     AircraftFullPaths = []
     AircraftNames = []
     BackupFullPaths = []
     BackupNames = []
+    AircraftNameToPath = {}
 
     for FileName in listdir(AircraftFolder):
         FullFilePath = AircraftFolder + sep + FileName
@@ -72,6 +74,7 @@ def UpdateFileList():
             if FileName.lower().endswith("." + AIRCRAFTEXTENTSION):
                 AircraftNames += [FileName[:-len(AIRCRAFTEXTENTSION) - 1]]
                 AircraftFullPaths += [FullFilePath]
+                AircraftNameToPath[AircraftNames[-1]] = FullFilePath
             if FileName.lower().endswith(BACKUPEXTENSION):
                 BackupNames += [FileName[:-len(AIRCRAFTEXTENTSION) - len(BACKUPEXTENSION) - 2]]
                 BackupFullPaths += [FullFilePath]
@@ -120,6 +123,7 @@ AircraftFullPaths:list[str] = []
 AircraftNames:list[str] = []
 BackupFullPaths:list[str] = []
 BackupNames:list[str] = []
+AircraftNameToPath:dict[str,str] = {}
 UpdateFileList()
 
 AircraftMapping:dict[str, str] = {"backed up":[]}
@@ -205,7 +209,7 @@ else:
         AttemptMappingRestoration("DefaultBackedip", 8)
     
     elif type(AircraftMapping["backed up"]) != list:
-        print(f"expected 'list' for \"backed up\" field, recived {GetTypeName(AircraftMapping['backed up'])}")
+        print(f"expected 'list' for \"backed up\" field, received {GetTypeName(AircraftMapping['backed up'])}")
         AttemptMappingRestoration("DefaultBackedip", 8)
 
     for backup in AircraftMapping["backed up"]:
@@ -422,13 +426,14 @@ while True:
             if ArgumentList[2] in AircraftMapping["backed up"]:
                 print(f"Not overwritting stored backup of \"{ArgumentList[2]}\"")
             elif AircraftMapping[ArgumentList[2]] != ArgumentList[2]:
-
                 print(f"Not overwritting stored backup of \"{ArgumentList[2]}\"")
+            
             elif ArgumentList[2] in AircraftMapping and AircraftMapping[ArgumentList[2]] == ArgumentList[2]:
-                FullBackupPath = f"{AircraftFolder}{sep}{ArgumentList[2]}.{AIRCRAFTEXTENTSION}.{BACKUPEXTENSION}"
-                copy(f"{AircraftFolder}{sep}{ArgumentList[2]}.{AIRCRAFTEXTENTSION}", FullBackupPath)
+                FullBackupPath = f"{AircraftNameToPath[ArgumentList[2]]}.{BACKUPEXTENSION}"
+                copy(f"{AircraftNameToPath[ArgumentList[2]]}", FullBackupPath)
                 AircraftMapping[ArgumentList[2]] = ArgumentList[1]
-                AircraftMapping["backed up"] += [ArgumentList[2]]*(ArgumentList[2] not in AircraftMapping["backed up"])
+                if ArgumentList[2] not in AircraftMapping["backed up"]:
+                    AircraftMapping["backed up"] += [ArgumentList[2]]
                 print(f"Backed up default aircraft \"{ArgumentList[2]}\"")
             else:
                 print("WARNING: No safe backup is possible")
@@ -438,10 +443,7 @@ while True:
                     NoError = False
             
             if NoError:
-                FullDesiredPath = AircraftNameToPath[ArgumentList[1]]
-                FullDefaultPath = AircraftNameToPath[ArgumentList[2]]
-
-                copy(FullDesiredPath, FullDefaultPath)
+                copy(AircraftNameToPath[ArgumentList[1]], AircraftNameToPath[ArgumentList[2]])
                 print(f"Selected \"{ArgumentList[1]}\" for \"{ArgumentList[2]}\"")
 
     elif CommandName == "restore":
