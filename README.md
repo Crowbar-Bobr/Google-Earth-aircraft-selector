@@ -1,6 +1,6 @@
 ...
 
 ## TODO:
-- [ ] Check/Test info command
-- [ ] Remove useless comments
+- [x] Check/Test info command
+- [x] Remove useless comments
 - [ ] Write setup instructions in README file

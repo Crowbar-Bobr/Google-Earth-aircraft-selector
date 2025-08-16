@@ -1,8 +1,5 @@
 from json import dumps as ToJSON, loads as FromJSON
 from json.decoder import JSONDecodeError
-# TODO: Check for bugs
-
-# TODO: Finish info command, add syntax descriptions
 
 from os import sep, remove, listdir, system, get_terminal_size
 from os.path import abspath, exists, isdir, isfile
@@ -232,10 +229,6 @@ else:
             print(f"ERROR: Backup of \"{backup}\" is not found")
             AttemptMappingRestoration("DefaultBackedip", 8)
             break
-
-#print("JSON\n" + ToJSON(MappingJSON, indent = 2))
-#print("\nPYTHON\n" + str(MappingJSON))
-#exit()
     
 def ShowPlanes():
     print("Available planes:")
@@ -249,13 +242,6 @@ def ShowPlanes():
         print("    None")
     for aircraft in BackupNames:
         print(f"   {aircraft.upper()} {'(Default)' * (aircraft in DEFAULTAIRCRAFTNAMES) * False}")
-
-def StrToNumber(PotentialNumber: str) -> float | None:
-        try:
-                TestNumber = float(PotentialNumber)
-                return TestNumber
-        except ValueError:
-                return None
 
 def InterpretateAircraftAsACF(AircraftName: str) -> dict[str, str]:
     file = open(AircraftNameToPath[AircraftName], "rt")
@@ -466,9 +452,6 @@ while True:
                     NoError = False
             
             if NoError:
-                #FullDesiredPath = AircraftFolder + sep + ArgumentList[1] + "." + AIRCRAFTEXTENTSION
-                #FullDefaultPath = AircraftFolder + sep + ArgumentList[2] + "." + AIRCRAFTEXTENTSION
-
                 FullDesiredPath = AircraftNameToPath[ArgumentList[1]]
                 FullDefaultPath = AircraftNameToPath[ArgumentList[2]]
 
