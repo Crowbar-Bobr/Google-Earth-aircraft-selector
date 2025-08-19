@@ -328,11 +328,52 @@ def WrongArgumentAmount(ExpectedAmount):
     print(f"ERROR: Expected {ExpectedAmount} argument{'s'*(str(ExpectedAmount) != '1')}, got {ArgumentCount}")
     NoError = False
 
+def SeparateCommand(Command: str) -> dict[str, bool | None]:
+    Command = Command.replace(";", "&")
+
+    Index = 0
+    MaxIndex = len(Command)
+    SeparatorIndexToIsConditional : dict[int, bool] = {}
+    while Index <= MaxIndex:
+        ConditionalSeperatorIndex    = Command[Index::].find("&&")
+        ConditionalSeperatorIndex   += Index * (ConditionalSeperatorIndex != -1)
+        
+        UnconditionalSeperatorIndex  = Command[Index::].find("&")
+        UnconditionalSeperatorIndex += Index * (UnconditionalSeperatorIndex != -1)
+
+        if ConditionalSeperatorIndex == -1 and UnconditionalSeperatorIndex == -1:
+            break
+        elif ConditionalSeperatorIndex == -1:
+            # Make next condition fail
+            ConditionalSeperatorIndex = UnconditionalSeperatorIndex + 1
+        # if ConditionalSeparator is found, UnconditionalSeparator will be found too
+
+        if UnconditionalSeperatorIndex < ConditionalSeperatorIndex:
+            SeparatorIndexToIsConditional[UnconditionalSeperatorIndex] = False
+            Index = UnconditionalSeperatorIndex + 1
+        else:
+            SeparatorIndexToIsConditional[ConditionalSeperatorIndex] = True
+            Index = UnconditionalSeperatorIndex + 2
+    
+    LastIndex = 0
+    SeparatedCommands = {}
+    for (SeparatorIndex, IsConditional) in list(SeparatorIndexToIsConditional.items()):
+        SeparatedCommands[Command[LastIndex:SeparatorIndex:].strip()] = IsConditional
+        
+        # To automatically skip either "&" or "&&" correctly
+        LastIndex = SeparatorIndex + 1 + IsConditional
+    
+    SeparatedCommands[Command[LastIndex::].strip()] = None
+
+    return SeparatedCommands
+
 ShowPlanes()
 
 print("\nTo select aircraft enter \"select [DESIRED_AIRCRAFT_NAME] as [DEFAULT_AIRCRAFT_NAME]\"")
-print("Enter \"help\" for more commands\n")
+print("Enter \"help\" for more commands")
 
+CommandList : dict[str, bool | None] = {}
+IsCommandConditional = None
 while True:
     if ENABLECONSTANTUPDATES:
         print("Scanning files...", end = "\r")
@@ -340,7 +381,13 @@ while True:
         print("\r", " " * 40, "\r", end = "")
     
     try:
-        Command = input("Enter Command:>").lower()
+        if not CommandList:
+            print()
+            Command = input("Enter Command:>").lower()
+            CommandList = SeparateCommand(Command)
+            
+        Command, IsCommandConditional = list(CommandList.items())[0]
+
     except KeyboardInterrupt:
         print()
         exit(6)
@@ -373,6 +420,9 @@ while True:
     elif CommandName == "list":
         UpdateFileList()
         ShowPlanes()
+
+    elif CommandName == "separator-test":
+        print(SeparateCommand(" ".join(ArgumentList[1::])))
 
     elif CommandName == "info":
         if not ArgumentCount:
@@ -469,9 +519,13 @@ while True:
                 NoError = True
 
     else:
-        print(f"ERROR: \"{CommandName}\" is not a valid command")
+        PrintError(f"ERROR: \"{CommandName}\" is not a valid command")
+
+    if IsCommandConditional and not NoError:
+        CommandList = {}
+    elif CommandList:
+        CommandList.pop(Command)
 
     SaveMappingJSON()
     if PRINTAIRCRAFTMAPPING:
         print(AircraftMapping)
-    print()
