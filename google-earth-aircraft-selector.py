@@ -409,16 +409,14 @@ while True:
         if ArgumentCount not in [2, 3]:
             WrongArgumentAmount("2 or 3")
 
-        if NoError and ArgumentList[1] not in AircraftNames:
+        if NoError and ArgumentList[1] not in AircraftNames and ArgumentList[1] in DEFAULTAIRCRAFTNAMES :
             PrintError(f"ERROR: \"{ArgumentList[1]}\" is not a valid aircraft")
-        if NoError and ArgumentList[1] in DEFAULTAIRCRAFTNAMES and NoError:
-            PrintError("ERROR: Default aircraft can't be selected, use restore command instead")
-        if NoError and ArgumentList[2] == "as" and ArgumentCount >= 3 and NoError:
+        if NoError and ArgumentList[2] == "as" and ArgumentCount >= 3:
             ArgumentList.pop(2)
             ArgumentCount -= 1
-        if NoError and ArgumentList[2] == "as" and ArgumentCount == 2 and NoError:
+        if NoError and ArgumentList[2] == "as" and ArgumentCount == 2:
             PrintError("ERROR: No default aircraft was specified")
-        if NoError and ArgumentList[2] not in DEFAULTAIRCRAFTNAMES and NoError:
+        if NoError and ArgumentList[2] not in DEFAULTAIRCRAFTNAMES:
             PrintError(f"ERROR: \"{ArgumentList[2]}\" is not a default aircraft")
 
         if NoError:
