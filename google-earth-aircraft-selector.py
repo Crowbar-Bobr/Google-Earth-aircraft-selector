@@ -256,6 +256,7 @@ def InterpretateAircraftAsACF(AircraftName: str) -> dict[str, str]:
     
     return FoundProprties
 
+# Returns error value: True for success, False for failure
 def Help(Command:str = "general"):
     Command = Command.lower()
     if Command == "general":
@@ -270,6 +271,10 @@ def Help(Command:str = "general"):
         print("  select             Load aircraft data to a default plane")
         print("  restore            Load backups of default aircraft to default aircraft")
         print("\nTo view full syntax description enter HELP COMMANDNAME or COMMANDNAME /?")
+        print("\nExecute several commands at once with separators:")
+        print("  [command1] &  [command2]...     Execute command1 and command2")
+        print("  [command1];   [command2]...     Same as [command1] & [command2]...")
+        print("  [command1] && [command2]...     Execute command2 if command1 is successful")
     elif Command == "help":
         print("Show command list or full command description")
         print("HELP [COMMAND_NAME]")
@@ -322,17 +327,51 @@ def Help(Command:str = "general"):
         print("all                  Specify to restore all backed up aircraft")
     else:
         print(f"No information about \"{Command}\"")
+        return False
+    return True
 
 def WrongArgumentAmount(ExpectedAmount):
     global NoError
     print(f"ERROR: Expected {ExpectedAmount} argument{'s'*(str(ExpectedAmount) != '1')}, got {ArgumentCount}")
     NoError = False
 
+def SeparateCommand(Command: str) -> list[tuple[str, bool | None]]:
+    Command = Command.replace(";", "&")
+
+    Index = 0
+    MaxIndex = len(Command)
+    SeparatedCommands = []
+    while Index <= MaxIndex:
+        ConditionalSeparatorIndex    = Command[Index::].find("&&")
+        ConditionalSeparatorIndex   += Index * (ConditionalSeparatorIndex != -1)
+        
+        UnconditionalSeparatorIndex  = Command[Index::].find("&")
+        UnconditionalSeparatorIndex += Index * (UnconditionalSeparatorIndex != -1)
+
+        if ConditionalSeparatorIndex == -1 and UnconditionalSeparatorIndex == -1:
+            break
+        elif ConditionalSeparatorIndex == -1:
+            # Rig indices in favour of unconditional separator if conditional one is not found
+            ConditionalSeparatorIndex = UnconditionalSeparatorIndex + 1
+        # if ConditionalSeparator is found, UnconditionalSeparator will be found too
+
+        IsConditional = UnconditionalSeparatorIndex >= ConditionalSeparatorIndex
+        SeparatorIndex = min(UnconditionalSeparatorIndex, ConditionalSeparatorIndex)
+        SeparatedCommands += [(Command[Index:SeparatorIndex:].strip(), IsConditional)]
+        
+        # Skip either "&" or "&&" correctly
+        Index = SeparatorIndex + 1 + IsConditional
+    
+    SeparatedCommands += [(Command[Index::].strip(), None)]
+    
+    return SeparatedCommands
+
 ShowPlanes()
 
 print("\nTo select aircraft enter \"select [DESIRED_AIRCRAFT_NAME] as [DEFAULT_AIRCRAFT_NAME]\"")
 print("Enter \"help\" for more commands\n")
 
+CommandList : list[tuple[str, bool | None]] = []    
 while True:
     if ENABLECONSTANTUPDATES:
         print("Scanning files...", end = "\r")
@@ -340,7 +379,25 @@ while True:
         print("\r", " " * 40, "\r", end = "")
     
     try:
-        Command = input("Enter Command:>").lower()
+        if not CommandList:
+            Command = input("Enter Command:>").lower()
+            CommandList = SeparateCommand(Command)
+            
+            for TestElement in [("", True), ("", False), ("", None)]:
+                if TestElement in CommandList:
+                    HasEmptyCommand = True
+                    break
+            else:
+                HasEmptyCommand = False
+
+            if HasEmptyCommand:
+                if len(CommandList) > 1: 
+                    print(f"ERROR: Empty command after or between separators\n")
+                CommandList = []
+                continue
+            
+        Command, IsCommandConditional = CommandList.pop(0)
+
     except KeyboardInterrupt:
         print()
         exit(6)
@@ -467,9 +524,14 @@ while True:
                 NoError = True
 
     else:
-        print(f"ERROR: \"{CommandName}\" is not a valid command")
+        PrintError(f"ERROR: \"{CommandName}\" is not a valid command")
+
+    if CommandList and IsCommandConditional and not NoError:
+        CommandList = []
+    
+    if not CommandList:
+        print()
 
     SaveMappingJSON()
     if PRINTAIRCRAFTMAPPING:
         print(AircraftMapping)
-    print()
