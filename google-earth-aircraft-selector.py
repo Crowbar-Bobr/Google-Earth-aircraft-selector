@@ -271,6 +271,10 @@ def Help(Command:str = "general"):
         print("  select             Load aircraft data to a default plane")
         print("  restore            Load backups of default aircraft to default aircraft")
         print("\nTo view full syntax description enter HELP COMMANDNAME or COMMANDNAME /?")
+        print("\nExecute seraval commands with separators:")
+        print("  [command1] &  [command2]...     Execute command1 and command2")
+        print("  [command1];   [command2]...     Same as [command1] & [command2]...")
+        print("  [command1] && [command2]...     Execute command2 if command1 is successful")
     elif Command == "help":
         print("Show command list or full command description")
         print("HELP [COMMAND_NAME]")
@@ -379,9 +383,10 @@ while True:
             Command = input("Enter Command:>").lower()
             CommandList = SeparateCommand(Command)
             
-            for TestKey in [("", True), ("", False), ("", None)]:
-                if TestKey in CommandList:
-                    HasEmptyCommand = True; break
+            for TestElement in [("", True), ("", False), ("", None)]:
+                if TestElement in CommandList:
+                    HasEmptyCommand = True
+                    break
             else:
                 HasEmptyCommand = False
 
