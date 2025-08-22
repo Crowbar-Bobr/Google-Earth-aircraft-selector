@@ -357,7 +357,7 @@ while True:
     
     if CommandName == "help":
         if ArgumentCount:
-            Help(ArgumentList[1])
+            Help(" ".join(ArgumentList[1::]))
         else:
             Help()
 
