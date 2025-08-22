@@ -81,7 +81,7 @@ def UpdateFileList():
 
 def PrintError(ErrorString:str):
     global NoError
-    print(ErrorString)
+    print("ERROR:", ErrorString)
     NoError = False
 
 def GetTypeName(Value):
@@ -184,7 +184,7 @@ else:
     DecodeError = LoadMappingJSON()
 
     if DecodeError:
-        PrintError("ERROR: Could not decode mapping file")
+        PrintError("Could not decode mapping file")
         if AskUser("Attempt to restore settings?", "yn") == "y":
             GetAircraftMapping("all")
         else:
@@ -439,12 +439,12 @@ while True:
         if RequestedProperties:
             for property in RequestedProperties:
                 if property not in VALIDACFPROPERTIES:
-                    PrintError(f"ERROR: Requested invalid property \"{property}\"")
+                    PrintError(f"Requested invalid property \"{property}\"")
 
         if NoError and ArgumentList[1] == "properties":
             Help("info properties")
         elif NoError and ArgumentList[1] not in AircraftNames:
-            PrintError(f"ERROR: \"{ArgumentList[1]}\" is not a valid aircraft or keyword")
+            PrintError(f"\"{ArgumentList[1]}\" is not a valid aircraft or keyword")
         elif NoError:
             Properties = InterpretateAircraftAsACF(ArgumentList[1])
             
@@ -467,14 +467,14 @@ while True:
             WrongArgumentAmount("2 or 3")
 
         if NoError and ArgumentList[1] not in AircraftNames and ArgumentList[1] in DEFAULTAIRCRAFTNAMES :
-            PrintError(f"ERROR: \"{ArgumentList[1]}\" is not a valid aircraft")
+            PrintError(f"\"{ArgumentList[1]}\" is not a valid aircraft")
         if NoError and ArgumentList[2] == "as" and ArgumentCount >= 3:
             ArgumentList.pop(2)
             ArgumentCount -= 1
         if NoError and ArgumentList[2] == "as" and ArgumentCount == 2:
-            PrintError("ERROR: No default aircraft was specified")
+            PrintError("No default aircraft was specified")
         if NoError and ArgumentList[2] not in DEFAULTAIRCRAFTNAMES:
-            PrintError(f"ERROR: \"{ArgumentList[2]}\" is not a default aircraft")
+            PrintError(f"\"{ArgumentList[2]}\" is not a default aircraft")
 
         if NoError:
             # Divided these conditions into seperate branches (they're too long)
@@ -511,9 +511,9 @@ while True:
             RestoreList = []
         for backup in RestoreList:
             if NoError and backup not in DEFAULTAIRCRAFTNAMES:
-                PrintError(f"ERROR: Can't restore not default aircraft data {backup}")
+                PrintError(f"Can't restore not default aircraft data {backup}")
             if NoError and backup not in BackupNames:
-                PrintError(f"ERROR: No \"{backup}\" backup found")
+                PrintError(f"No \"{backup}\" backup found")
             if NoError:
                 copy(BackupFullPaths[BackupNames.index(backup)], 
                      AircraftFolder + sep + backup + "." + AIRCRAFTEXTENTSION)
@@ -524,7 +524,7 @@ while True:
                 NoError = True
 
     else:
-        PrintError(f"ERROR: \"{CommandName}\" is not a valid command")
+        PrintError(f"\"{CommandName}\" is not a valid command")
 
     if CommandList and IsCommandConditional and not NoError:
         CommandList = []
