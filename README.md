@@ -3,5 +3,5 @@
 - [x] Implement execution of separated commands
 - [x] Test SeparateCommand function
 - [x] Test execution, error handling of separated commands
-- [ ] Add description explaining usage
+- [x] Add description explaining usage
 - [ ] Write setup instructions in README file

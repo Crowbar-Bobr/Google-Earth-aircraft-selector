@@ -271,7 +271,7 @@ def Help(Command:str = "general"):
         print("  select             Load aircraft data to a default plane")
         print("  restore            Load backups of default aircraft to default aircraft")
         print("\nTo view full syntax description enter HELP COMMANDNAME or COMMANDNAME /?")
-        print("\nExecute seraval commands with separators:")
+        print("\nExecute several commands at once with separators:")
         print("  [command1] &  [command2]...     Execute command1 and command2")
         print("  [command1];   [command2]...     Same as [command1] & [command2]...")
         print("  [command1] && [command2]...     Execute command2 if command1 is successful")
