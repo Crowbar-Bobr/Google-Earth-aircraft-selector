@@ -316,7 +316,7 @@ def Help(Command:str = "general"):
         print(PropertyListString[:-2:])
     elif Command == "select":
         print("Load aircraft data to a default plane")
-        print("SELECT [DESIRED_AIRCRAFT] [as] [DEFAULT_AIRCRAFT]\n")
+        print("SELECT [DESIRED_AIRCRAFT] as [DEFAULT_AIRCRAFT]\n")
         print("DESIRED_AIRCRAFT     Specify what aircraft data to copy")
         print("DEFAULT_AIRCRAFT     Specify where aircraft data will be pasted to")
         print("\nNOTE: you can skip \"as\" keyword")
@@ -463,11 +463,15 @@ while True:
                 print(f"{PropertyName} = {Properties[PropertyName]}")
 
     elif CommandName == "select":
-        if ArgumentCount not in [2, 3]:
+        if ArgumentCount == 1:
+            PrintError("No default aircraft was specified")
+        if NoError and ArgumentCount not in [2, 3]:
             WrongArgumentAmount("2 or 3")
 
-        if NoError and ArgumentList[1] not in AircraftNames and ArgumentList[1] in DEFAULTAIRCRAFTNAMES :
+        if NoError and ArgumentList[1] not in AircraftNames:
             PrintError(f"\"{ArgumentList[1]}\" is not a valid aircraft")
+        if NoError and ArgumentList[1] in DEFAULTAIRCRAFTNAMES:
+            PrintError(f"Can't select default aircraft. Use restore command instead")
         if NoError and ArgumentList[2] == "as" and ArgumentCount >= 3:
             ArgumentList.pop(2)
             ArgumentCount -= 1
