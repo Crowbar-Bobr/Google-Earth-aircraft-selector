@@ -519,12 +519,11 @@ while True:
             RestoreList = []
         for backup in RestoreList:
             if NoError and backup not in DEFAULTAIRCRAFTNAMES:
-                PrintError(f"Can't restore not default aircraft data {backup}")
+                PrintError(f"Can't restore not a default aircraft \"{backup}\"")
             if NoError and backup not in BackupNames:
                 PrintError(f"No \"{backup}\" backup found")
             if NoError:
-                copy(BackupFullPaths[BackupNames.index(backup)], 
-                     AircraftFolder + sep + backup + "." + AIRCRAFTEXTENTSION)
+                copy(BackupFullPaths[BackupNames.index(backup)], AircraftNameToPath[backup])
                 AircraftMapping[backup] = backup
                 print(f"Restored backup of \"{backup}\"")
             
